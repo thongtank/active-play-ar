@@ -355,9 +355,15 @@
         knees = 0,
         sides = 0,
         finalTime = 0,
+        activeTime = 0,
+        lastMotionAt = -Infinity,
+        missionStartedAt = 0,
+        missionQualitySum = 0,
+        missionQualityEvents = 0,
         prevArm = false,
         prevKnee = null,
         prevSide = null,
+        prevNoseX = null,
         moves = 0,
         correct = 0,
         combo = 0,
@@ -379,6 +385,16 @@
       function check(e, ok, text) {
         $(e).className = "check " + (ok ? "ready" : "");
         $(e).textContent = (ok ? "✓ " : "○ ") + text;
+      }
+      function noteMotion(now, quality = 1, count = true) {
+        const safeQuality = Math.max(0, Math.min(1, quality));
+        lastMotionAt = now;
+        missionQualitySum += safeQuality;
+        missionQualityEvents++;
+        if (count) {
+          moves++;
+          correct += safeQuality;
+        }
       }
       function ui() {
         $("score").textContent = score;
@@ -507,15 +523,18 @@
         running = true;
         session.start_time = new Date().toISOString();
         session.session_status = "playing";
+        missionStartedAt = performance.now();
         spawnTarget();
         last = performance.now();
         frame();
       }
       function mark(points, type) {
-        score += points;
+        const quality = missionQualityEvents ? missionQualitySum / missionQualityEvents : 1;
+        const elapsed = Math.max(0, (performance.now() - missionStartedAt) / 1000);
+        const speedBonus = Math.max(0, Math.round(10 - elapsed / 3));
+        const earned = points + Math.round(points * 0.25 * quality) + speedBonus;
+        score += earned;
         combo++;
-        moves++;
-        correct++;
         mission++;
         session.missions.push({
           mission_id: id("mission"),
@@ -523,13 +542,16 @@
           student_id: session.student_id,
           mission_name: names[mission - 1],
           mission_type: type,
-          target_count: type === "arm" ? 5 : type === "knee" ? 8 : 1,
+          target_count: type === "arm" ? 5 : type === "knee" ? 8 : type === "side" ? 6 : type === "continuous" ? 15 : 1,
           success_count: 1,
           accuracy_percent: 100,
-          duration_sec: Math.round(90 - time),
-          score: points,
+          duration_sec: Math.round(elapsed),
+          score: earned,
           completed: true,
         });
+        missionStartedAt = performance.now();
+        missionQualitySum = 0;
+        missionQualityEvents = 0;
         if (mission === 5) finish("completed");
       }
       function frame(now = performance.now()) {
@@ -537,6 +559,7 @@
         let dt = (now - last) / 1000;
         last = now;
         time -= dt;
+        if (now - lastMotionAt < 1000) activeTime += dt;
         const detection = detectFrame();
         if (!detection) { requestAnimationFrame(frame); return; }
         let h = detection.hand,
@@ -549,6 +572,7 @@
             tx = parseFloat(target.style.left) / r.width,
             ty = parseFloat(target.style.top) / r.height;
           if (Math.hypot(x - tx, y - ty) < 0.12) {
+            noteMotion(now, 1 - Math.hypot(x - tx, y - ty) / 0.12);
             target.style.display = "none";
             mark(20, "touch");
           }
@@ -557,8 +581,7 @@
             up = l[15].y < l[11].y - 0.06 || l[16].y < l[12].y - 0.06;
           if (up && !prevArm) {
             arms++;
-            moves++;
-            correct++;
+            noteMotion(now, Math.min(1, Math.max(0, (Math.max(l[11].y - l[15].y, l[12].y - l[16].y) - 0.06) / 0.18)));
             if (arms >= 5) mark(25, "arm");
           }
           prevArm = up;
@@ -572,8 +595,7 @@
                 : null;
           if (k && k !== prevKnee) {
             knees++;
-            moves++;
-            correct++;
+            noteMotion(now, Math.min(1, Math.max(0, (Math.max(l[23].y - l[25].y, l[24].y - l[26].y) - 0.08) / 0.22)));
             prevKnee = k;
             if (knees >= 8) mark(25, "knee");
           }
@@ -583,13 +605,17 @@
           if (!side) prevSide = null;
           if (side && side !== prevSide) {
             sides++;
-            moves++;
-            correct++;
+            noteMotion(now, Math.min(1, Math.abs(x - 0.5) / 0.3));
             prevSide = side;
             if (sides >= 6) mark(30, "side");
           }
-        } else if (mission === 4) {
-          finalTime += dt;
+        } else if (mission === 4 && p.landmarks?.[0]) {
+          const noseX = p.landmarks[0][0].x;
+          if (prevNoseX !== null && Math.abs(noseX - prevNoseX) > 0.008) {
+            finalTime += dt;
+            noteMotion(now, Math.min(1, Math.abs(noseX - prevNoseX) / 0.06), false);
+          }
+          prevNoseX = noseX;
           if (finalTime >= 15) mark(50, "continuous");
         }
         if (time <= 0) finish("timeout");
@@ -622,7 +648,7 @@
         Object.assign(session, {
           end_time: new Date().toISOString(),
           duration_sec: Math.max(0, Math.round(90 - time)),
-          active_time_sec: Math.round(finalTime + arms + knees + sides / 12),
+          active_time_sec: Math.round(activeTime),
           total_score: score,
           missions_completed: mission,
           total_missions: 5,
@@ -640,7 +666,7 @@
               movement_type: "game_total",
               target_count: 5,
               actual_count: moves,
-              duration_sec: Math.round(finalTime + arms + knees + sides / 12),
+              duration_sec: Math.round(activeTime),
               accuracy_percent: moves ? Math.round((correct / moves) * 100) : 0,
               left_count: 0,
               right_count: 0,
@@ -663,13 +689,20 @@
           knees =
           sides =
           finalTime =
+          activeTime =
           moves =
           correct =
           combo =
             0;
         time = 90;
+        lastMotionAt = -Infinity;
+        missionStartedAt = 0;
+        missionQualitySum = 0;
+        missionQualityEvents = 0;
         prevArm = false;
         prevKnee = null;
+        prevSide = null;
+        prevNoseX = null;
         target.style.display = "none";
         ui();
         screen("startScreen");
