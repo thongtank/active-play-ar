@@ -361,6 +361,7 @@
         moves = 0,
         correct = 0,
         combo = 0,
+        lastDetectionTimestamp = -1,
         session;
       function screen(id) {
         ["startScreen", "calibration", "resultScreen"].forEach((x) =>
@@ -408,6 +409,17 @@
         $("prepare").textContent = "ตรวจสอบความพร้อม";
         $("status").textContent = "พร้อมให้ตรวจสอบกล้อง";
       }
+      function detectFrame() {
+        // MediaPipe requires timestamps to strictly increase for each video frame.
+        // Both calibration and gameplay use this single gate to prevent overlap.
+        const videoTimestamp = Math.round(video.currentTime * 1000);
+        const timestamp = Math.max(videoTimestamp, lastDetectionTimestamp + 1);
+        lastDetectionTimestamp = timestamp;
+        return {
+          hand: hand.detectForVideo(video, timestamp),
+          pose: pose.detectForVideo(video, timestamp),
+        };
+      }
       function learner() {
         let name = $("studentName").value.trim(),
           room = $("room").value.trim(),
@@ -451,9 +463,9 @@
       }
       function calibrate() {
         if (running || !stream) return;
-        let now = performance.now(),
-          h = hand.detectForVideo(video, now),
-          p = pose.detectForVideo(video, now),
+        const detection = detectFrame();
+        let h = detection.hand,
+          p = detection.pose,
           hasH = !!h.landmarks?.[0],
           hasP = !!p.landmarks?.[0];
         check("cameraCheck", video.readyState >= 2, "กล้องพร้อมใช้งาน");
@@ -516,8 +528,9 @@
         let dt = (now - last) / 1000;
         last = now;
         time -= dt;
-        let h = hand.detectForVideo(video, now),
-          p = pose.detectForVideo(video, now);
+        const detection = detectFrame();
+        let h = detection.hand,
+          p = detection.pose;
         if (mission === 0 && h.landmarks?.[0]) {
           let q = h.landmarks[0][8],
             x = 1 - q.x,
