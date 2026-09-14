@@ -362,6 +362,9 @@
         correct = 0,
         combo = 0,
         lastDetectionTimestamp = -1,
+        lastVideoTime = -1,
+        latestDetection = null,
+        calibrationRaf = 0,
         session;
       function screen(id) {
         ["startScreen", "calibration", "resultScreen"].forEach((x) =>
@@ -410,15 +413,18 @@
         $("status").textContent = "พร้อมให้ตรวจสอบกล้อง";
       }
       function detectFrame() {
-        // MediaPipe requires timestamps to strictly increase for each video frame.
-        // Both calibration and gameplay use this single gate to prevent overlap.
-        const videoTimestamp = Math.round(video.currentTime * 1000);
-        const timestamp = Math.max(videoTimestamp, lastDetectionTimestamp + 1);
+        // One detection only per decoded camera frame. MediaPipe rejects
+        // timestamps that arrive out of order or when the same frame is queued twice.
+        if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return latestDetection;
+        if (video.currentTime === lastVideoTime) return latestDetection;
+        lastVideoTime = video.currentTime;
+        const timestamp = Math.max(Math.round(performance.now()), lastDetectionTimestamp + 1);
         lastDetectionTimestamp = timestamp;
-        return {
+        latestDetection = {
           hand: hand.detectForVideo(video, timestamp),
           pose: pose.detectForVideo(video, timestamp),
         };
+        return latestDetection;
       }
       function learner() {
         let name = $("studentName").value.trim(),
@@ -464,6 +470,7 @@
       function calibrate() {
         if (running || !stream) return;
         const detection = detectFrame();
+        if (!detection) { calibrationRaf = requestAnimationFrame(calibrate); return; }
         let h = detection.hand,
           p = detection.pose,
           hasH = !!h.landmarks?.[0],
@@ -482,7 +489,7 @@
         ready = hasH && hasP;
         $("start").disabled = !ready;
         $("start").textContent = ready ? "READY TO PLAY" : "รอการตรวจสอบ…";
-        requestAnimationFrame(calibrate);
+        calibrationRaf = requestAnimationFrame(calibrate);
       }
       function spawnTarget() {
         let r = stage.getBoundingClientRect(),
@@ -494,6 +501,8 @@
       }
       function begin() {
         if (!ready) return;
+        cancelAnimationFrame(calibrationRaf);
+        calibrationRaf = 0;
         screen("none");
         running = true;
         session.start_time = new Date().toISOString();
@@ -529,6 +538,7 @@
         last = now;
         time -= dt;
         const detection = detectFrame();
+        if (!detection) { requestAnimationFrame(frame); return; }
         let h = detection.hand,
           p = detection.pose;
         if (mission === 0 && h.landmarks?.[0]) {
