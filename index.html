@@ -273,14 +273,14 @@
                 /></label>
               </div>
               <p class="note">รายชื่อจริงจะโหลดจาก Google Sheets ในขั้นถัดไป</p>
-              <button id="prepare">ตรวจสอบความพร้อม</button>
+              <button id="prepare" disabled>กำลังโหลดระบบ AI…</button>
               <p class="note" id="status">ต้องอนุญาตให้เว็บไซต์ใช้กล้อง</p>
             </div>
           </div>
           <div class="screen hidden" id="calibration">
             <div class="card">
               <h1>ตรวจสอบความพร้อม</h1>
-              <p>ยืนให้เห็นร่างกายช่วงบนและยกมือขึ้นในกรอบกล้อง</p>
+            <p>ถอยให้กล้องเห็นร่างกายตั้งแต่ศีรษะถึงเท้า และยกมือขึ้นในกรอบกล้อง</p>
               <div id="cameraCheck" class="check">○ กำลังตรวจกล้อง</div>
               <div id="poseCheck" class="check">○ กำลังตรวจพบร่างกาย</div>
               <div id="handCheck" class="check">○ กำลังตรวจพบมือ</div>
@@ -346,6 +346,7 @@
         stream,
         running = false,
         ready = false,
+        modelsReady = false,
         mission = 0,
         score = 0,
         time = 90,
@@ -356,6 +357,7 @@
         finalTime = 0,
         prevArm = false,
         prevKnee = null,
+        prevSide = null,
         moves = 0,
         correct = 0,
         combo = 0,
@@ -396,24 +398,14 @@
         const f = await FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm",
         );
-        hand = await HandLandmarker.createFromOptions(f, {
-          baseOptions: {
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task",
-            delegate: "GPU",
-          },
-          runningMode: "VIDEO",
-          numHands: 1,
-        });
-        pose = await PoseLandmarker.createFromOptions(f, {
-          baseOptions: {
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
-            delegate: "GPU",
-          },
-          runningMode: "VIDEO",
-          numPoses: 1,
-        });
+        const load = async (delegate) => {
+          hand = await HandLandmarker.createFromOptions(f, { baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task", delegate }, runningMode: "VIDEO", numHands: 1 });
+          pose = await PoseLandmarker.createFromOptions(f, { baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task", delegate }, runningMode: "VIDEO", numPoses: 1 });
+        };
+        try { await load("GPU"); } catch (gpuError) { await load("CPU"); }
+        modelsReady = true;
+        $("prepare").disabled = false;
+        $("prepare").textContent = "ตรวจสอบความพร้อม";
         $("status").textContent = "พร้อมให้ตรวจสอบกล้อง";
       }
       function learner() {
@@ -433,6 +425,7 @@
         };
       }
       async function prepare() {
+        if (!modelsReady) { $("status").textContent = "ระบบ AI ยังโหลดไม่เสร็จ"; return; }
         const s = learner();
         if (!s) return;
         try {
@@ -467,7 +460,7 @@
         check(
           "poseCheck",
           hasP,
-          hasP ? "ตรวจพบร่างกายแล้ว" : "ยืนให้กล้องเห็นร่างกายช่วงบน",
+          hasP ? "ตรวจพบร่างกายแล้ว" : "ถอยให้กล้องเห็นร่างกายตั้งแต่ศีรษะถึงเท้า",
         );
         check(
           "handCheck",
@@ -561,13 +554,17 @@
             prevKnee = k;
             if (knees >= 8) mark(25, "knee");
           }
-        } else if (
-          mission === 3 &&
-          p.landmarks?.[0] &&
-          Math.abs(p.landmarks[0][0].x - 0.5) > 0.18
-        ) {
-          sides++;
-          if (sides >= 36) mark(30, "side");
+        } else if (mission === 3 && p.landmarks?.[0]) {
+          const x = p.landmarks[0][0].x;
+          const side = x < 0.32 ? "L" : x > 0.68 ? "R" : null;
+          if (!side) prevSide = null;
+          if (side && side !== prevSide) {
+            sides++;
+            moves++;
+            correct++;
+            prevSide = side;
+            if (sides >= 6) mark(30, "side");
+          }
         } else if (mission === 4) {
           finalTime += dt;
           if (finalTime >= 15) mark(50, "continuous");
