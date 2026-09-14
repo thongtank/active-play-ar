@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#06111f">
+<title>ACTIVE PLAY AR — Mobile & Tablet Prototype</title>
+<style>
+:root{--bg:#06111f;--panel:rgba(8,20,39,.9);--line:rgba(91,220,255,.32);--cyan:#57e7ff;--gold:#ffd85c;--green:#6ff0a4;--pink:#ff668e;--text:#f7fbff;--muted:#b9c9df}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+button{font:inherit}
+.app{width:min(1100px,100%);margin:auto;padding:12px}
+.world{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:24px;padding:13px;
+background:radial-gradient(circle at 50% 35%,rgba(69,216,255,.18),transparent 25%),radial-gradient(circle at 15% 90%,rgba(112,244,164,.12),transparent 25%),linear-gradient(145deg,#06152b,#092844 50%,#08271f)}
+.top{display:flex;justify-content:space-between;gap:9px;align-items:center;flex-wrap:wrap}.brand{display:flex;gap:9px;align-items:center}.brandIcon{font-size:34px}
+h1{margin:0;font-size:clamp(22px,5vw,38px)}.sub{color:var(--muted);font-size:12px}.hud{display:flex;gap:6px;flex-wrap:wrap}.hudbox{min-width:72px;padding:7px 9px;border:1px solid var(--line);border-radius:11px;background:rgba(2,10,22,.7)}.hudbox small{display:block;color:var(--muted);font-size:10px}.hudbox b{font-size:18px;color:var(--gold)}
+.layout{display:grid;grid-template-columns:190px minmax(0,1fr) 190px;gap:9px;margin-top:11px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:11px}.panel h2{font-size:15px;margin:0 0 8px}
+.tag{display:inline-block;color:var(--gold);border:1px solid rgba(255,216,92,.35);background:rgba(255,216,92,.1);padding:3px 7px;border-radius:99px;font-size:10px;font-weight:800}.mission strong{display:block;font-size:19px;margin:7px 0 3px}.mission p{margin:0;color:var(--muted);font-size:11px;line-height:1.5}
+.camera{margin-top:9px}.cameraBox{position:relative;aspect-ratio:4/3;background:#020711;border-radius:10px;overflow:hidden}#video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}#hand{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}
+.status{font-size:11px;color:var(--green);margin-top:6px}
+.arena{position:relative;aspect-ratio:4/3;min-height:430px;border-radius:17px;overflow:hidden;border:1px solid rgba(255,255,255,.12);
+background:linear-gradient(180deg,#102d4c 0%,#0b2540 48%,#08241e 49%,#051b16 100%)}
+.grid{position:absolute;left:-10%;right:-10%;bottom:-8%;height:52%;transform:perspective(400px) rotateX(58deg);background-image:linear-gradient(rgba(87,231,255,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(87,231,255,.15) 1px,transparent 1px);background-size:50px 32px}.ring{position:absolute;left:50%;top:53%;width:43%;aspect-ratio:1;border:2px solid rgba(87,231,255,.4);border-radius:50%;transform:translate(-50%,-50%)}.avatar{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:clamp(95px,18vw,175px);filter:drop-shadow(0 0 24px rgba(87,231,255,.55));user-select:none}
+.instruction{position:absolute;z-index:6;left:50%;top:10px;transform:translateX(-50%);width:88%;text-align:center;background:rgba(2,9,20,.76);border:1px solid var(--line);border-radius:13px;padding:8px}.instruction b{font-size:16px}.instruction span{display:block;color:var(--muted);font-size:10px}
+.goal{position:absolute;width:82px;height:82px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;border:3px solid white;background:rgba(255,102,142,.17);box-shadow:0 0 26px rgba(255,102,142,.7);z-index:5;transition:.18s}.goal.hit{transform:scale(1.22);border-color:var(--green);background:rgba(111,240,164,.2)}
+.cursor{position:absolute;width:25px;height:25px;border:3px solid white;border-radius:50%;background:var(--cyan);box-shadow:0 0 18px var(--cyan);z-index:8;display:none;transform:translate(-50%,-50%);pointer-events:none}.feedback{position:absolute;z-index:7;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(2,9,20,.84);border:1px solid var(--line);padding:7px 12px;border-radius:99px;font-size:12px;font-weight:800;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.bottom{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}.bottom button{min-height:46px;padding:10px 15px;border-radius:12px;font-weight:800;border:0}.primary{background:linear-gradient(135deg,#4ce5f7,#328aff);color:#06111f}.secondary{background:rgba(255,255,255,.08);border:1px solid var(--line)!important;color:white}
+.bar{height:8px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--gold));transition:.3s}
+.item{display:flex;gap:7px;padding:7px;border-radius:9px;background:rgba(255,255,255,.04);font-size:11px;margin-bottom:6px}.item.lock{opacity:.45}.item.done{background:rgba(111,240,164,.1);border:1px solid rgba(111,240,164,.25)}
+.note{font-size:11px;color:var(--muted);line-height:1.5}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.left,.right{display:grid;grid-template-columns:1fr 1fr;gap:9px}.camera{margin-top:0}.arena{min-height:360px}}
+@media(max-width:520px){.app{padding:6px}.world{padding:9px;border-radius:17px}.left,.right{display:block}.camera{margin-top:9px}.arena{min-height:310px}.hudbox{min-width:64px}.goal{width:70px;height:70px;font-size:34px}.feedback{font-size:11px}}
+</style>
+</head>
+<body>
+<main class="app"><section class="world">
+<div class="top">
+ <div class="brand"><div class="brandIcon">⚡</div><div><h1>ACTIVE PLAY AR</h1><div class="sub">Mobile • Tablet • Notebook | เล่นด้วยการเคลื่อนไหวจริง</div></div></div>
+ <div class="hud"><div class="hudbox"><small>คะแนน</small><b id="score">0</b></div><div class="hudbox"><small>เวลา</small><b id="time">90</b></div><div class="hudbox"><small>ด่าน</small><b id="mn">1/5</b></div></div>
+</div>
+<div class="layout">
+<aside class="left">
+ <div class="panel mission"><span class="tag">MISSION <span id="tag">01</span></span><strong id="title">☝️ แตะพลัง</strong><p id="desc">ใช้ปลายนิ้วชี้เลื่อนให้ตรงเป้าหมาย</p></div>
+ <div class="panel camera"><h2>📱 กล้อง</h2><div class="cameraBox"><video id="video" playsinline autoplay muted></video><canvas id="hand"></canvas></div><div class="status" id="status">⚪ ยังไม่ได้เปิดกล้อง</div></div>
+</aside>
+<section>
+ <div class="panel">
+  <div class="arena" id="arena">
+   <div class="grid"></div><div class="ring"></div><div class="instruction"><b id="inst">เปิดกล้องแล้วเริ่มภารกิจ</b><span id="sub">ระบบตรวจจับมือและท่าทาง</span></div>
+   <div class="avatar">🧑‍🚀</div><div class="goal" id="goal" style="left:70%;top:43%">⚡</div><div class="cursor" id="cursor"></div>
+   <div class="feedback" id="feedback">พร้อมออกผจญภัยหรือยัง?</div>
+  </div>
+  <div class="bar"><i id="progress"></i></div>
+  <div class="bottom"><button class="primary" id="start">▶ เปิดกล้องและเริ่มเกม</button><button class="secondary" id="reset">↻ เริ่มใหม่</button></div>
+ </div>
+</section>
+<aside class="right">
+ <div class="panel"><h2>🏆 ภารกิจ</h2>
+  <div class="item" id="m1">☝️ แตะเป้าหมาย</div><div class="item lock" id="m2">🙆 ยกแขน 5 ครั้ง</div><div class="item lock" id="m3">🦵 ยกเข่า 8 ครั้ง</div><div class="item lock" id="m4">🏃 เคลื่อนตัวเก็บพลัง</div><div class="item lock" id="m5">🏆 Final Fitness</div>
+ </div>
+ <div class="panel" style="margin-top:9px"><h2>📚 ความรู้</h2><div class="note" id="fact">การออกกำลังกายอย่างสม่ำเสมอช่วยส่งเสริมสุขภาพและสมรรถภาพทางกาย</div></div>
+ <div class="panel" style="margin-top:9px"><h2>📲 การวางอุปกรณ์</h2><div class="note">มือถือ/Tablet: ตั้งเครื่องให้อยู่ห่างพอเห็นลำตัว<br>Notebook: ใช้ Webcam ตามปกติ<br><br>แนะนำให้ใช้พื้นที่โล่งและปลอดภัย</div></div>
+</aside>
+</div>
+</section></main>
+
+<script type="module">
+import {HandLandmarker,PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/+esm";
+const $=id=>document.getElementById(id),video=$("video"),arena=$("arena"),canvas=$("hand"),ctx=canvas.getContext("2d"),goal=$("goal"),cursor=$("cursor");
+let hand=null,pose=null,stream=null,running=false,score=0,timeLeft=90,mission=1,hit=false,last=-1,timer=null,arms=0,knees=0,armState=false,lK=false,rK=false;
+const D=[
+ ["☝️ แตะพลัง","ใช้ปลายนิ้วชี้เลื่อนให้ตรงเป้าหมาย","ใช้ปลายนิ้วชี้แตะ ⚡","เลื่อนมือให้ตรงเป้า","⚡","การขยับร่างกายเป็นส่วนสำคัญของการมีสุขภาพดี"],
+ ["🙆 ชาร์จพลังแขน","ยกแขนเหนือไหล่ 5 ครั้ง","ยกแขนเหนือไหล่ 5 ครั้ง","ทำช้า ๆ และอยู่ในพื้นที่ปลอดภัย","🔋","การเคลื่อนไหวช่วยพัฒนาความแข็งแรงและความคล่องตัว"],
+ ["🦵 พลังขาสลับ","ยกเข่าสลับซ้าย–ขวา 8 ครั้ง","ยกเข่าสลับซ้าย–ขวา 8 ครั้ง","ยืนให้กล้องเห็นลำตัวและขา","🔥","การออกกำลังกายช่วยพัฒนาความทนทานของกล้ามเนื้อ"],
+ ["🏃 เก็บพลัง","เคลื่อนตัวซ้าย–ขวาเพื่อเก็บพลัง","ขยับตัวซ้าย–ขวา","เน้นการเคลื่อนไหวอย่างปลอดภัย","💎","การเล่นที่ผสมการเคลื่อนไหวช่วยเพิ่มการมีส่วนร่วม"],
+ ["🏆 Final Fitness","ทำท่าสุดท้ายให้สำเร็จ","ยกแขน + ยกเข่า + แตะเป้าหมาย","นักสำรวจสุขภาพระดับทอง","🏆","ความสม่ำเสมอสำคัญกว่าการออกกำลังกายหนักเพียงครั้งเดียว"]
+];
+const say=t=>$("feedback").textContent=t;
+function resize(){canvas.width=video.clientWidth||640;canvas.height=video.clientHeight||480}window.addEventListener("resize",resize);
+async function init(){
+ const v=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm");
+ hand=await HandLandmarker.createFromOptions(v,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:.55,minHandPresenceConfidence:.55,minTrackingConfidence:.55});
+ pose=await PoseLandmarker.createFromOptions(v,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"GPU"},runningMode:"VIDEO",numPoses:1,minPoseDetectionConfidence:.5,minPosePresenceConfidence:.5,minTrackingConfidence:.5});
+}
+async function openCam(){
+ if(!navigator.mediaDevices?.getUserMedia)throw Error("Webcam unavailable");
+ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});
+ video.srcObject=stream;await video.play();resize();running=true;requestAnimationFrame(loop);
+}
+function drawHand(lm){const w=canvas.width,h=canvas.height,E=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20]];ctx.strokeStyle="#ffd85c";ctx.lineWidth=2;E.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(lm[a].x*w,lm[a].y*h);ctx.lineTo(lm[b].x*w,lm[b].y*h);ctx.stroke()})}
+function handHit(lm){
+ const p=lm[8],r=arena.getBoundingClientRect(),x=(1-p.x)*r.width,y=p.y*r.height;cursor.style.display="block";cursor.style.left=x+"px";cursor.style.top=y+"px";
+ const tr=goal.getBoundingClientRect(),ar=arena.getBoundingClientRect(),tx=tr.left-ar.left+tr.width/2,ty=tr.top-ar.top+tr.height/2;
+ if(Math.hypot(x-tx,y-ty)<54&&mission===1&&!hit){hit=true;score+=10;$("score").textContent=score;goal.classList.add("hit");say("🎉 เยี่ยม! +10 คะแนน");setTimeout(next,650)}
+}
+function poseCheck(lm){
+ const ls=lm[11],rs=lm[12],lw=lm[15],rw=lm[16],lh=lm[23],rh=lm[24],lkp=lm[25],rkp=lm[26],nose=lm[0];
+ if(mission===2){
+  const up=(lw.y<ls.y-.08)||(rw.y<rs.y-.08);if(up&&!armState){armState=true;arms++;say("🙆 ยกแขน "+arms+"/5")}if(!up)armState=false;if(arms>=5)physicalDone();
+ }else if(mission===3){
+  const a=lkp.y<lh.y-.08,b=rkp.y<rh.y-.08;if(a&&!lK){lK=true;knees++;say("🦵 เข่า "+knees+"/8")}if(!a)lK=false;if(b&&!rK){rK=true;knees++;say("🦵 เข่า "+knees+"/8")}if(!b)rK=false;if(knees>=8)physicalDone();
+ }else if(mission===4){if(nose.x<.34||nose.x>.66)physicalDone()}
+ else if(mission===5){if(lw.y<ls.y-.05&&rw.y<rs.y-.05&&(lkp.y<lh.y-.05||rkp.y<rh.y-.05))physicalDone()}
+}
+function physicalDone(){if(hit)return;hit=true;score+=20;$("score").textContent=score;goal.classList.add("hit");say("⚡ สำเร็จ! +20 คะแนน");setTimeout(next,700)}
+function next(){
+ if(mission>=5){running=false;clearInterval(timer);$("progress").style.width="100%";say("🏆 FINAL MISSION สำเร็จ! นักสำรวจระดับทอง!");return}
+ $("m"+mission).classList.add("done");mission++;$("m"+mission).classList.remove("lock");hit=false;
+ const d=D[mission-1];$("tag").textContent=String(mission).padStart(2,"0");$("mn").textContent=mission+"/5";$("title").textContent=d[0];$("desc").textContent=d[1];$("inst").textContent=d[2];$("sub").textContent=d[3];goal.textContent=d[4];$("fact").textContent=d[5];goal.classList.remove("hit");goal.style.left=(25+Math.random()*50)+"%";goal.style.top=(25+Math.random()*48)+"%";$("progress").style.width=((mission-1)/5*100)+"%";arms=knees=0;armState=lK=rK=false;say("🎯 ด่านใหม่: "+d[0])
+}
+function loop(){
+ if(!running)return;if(video.readyState>=2&&video.currentTime!==last){last=video.currentTime;ctx.clearRect(0,0,canvas.width,canvas.height);
+  const hr=hand.detectForVideo(video,performance.now()),pr=pose.detectForVideo(video,performance.now());
+  if(hr.landmarks?.length){hr.landmarks.forEach(drawHand);handHit(hr.landmarks[0])}else cursor.style.display="none";
+  if(pr.landmarks?.length)poseCheck(pr.landmarks[0]);
+ }requestAnimationFrame(loop)
+}
+$("reset").onclick=()=>location.reload();
+$("start").onclick=async()=>{try{$("start").disabled=true;say("กำลังเตรียมระบบ…");await init();await openCam();$("status").textContent="🟢 Hand + Pose Tracking พร้อม";say("🟢 เริ่มแล้ว! ใช้ร่างกายเล่นเกม");timer=setInterval(()=>{if(!running)return;timeLeft--;$("time").textContent=timeLeft;if(timeLeft<=0){running=false;clearInterval(timer);say("⏰ หมดเวลา! คะแนน "+score)}},1000)}catch(e){console.error(e);say("❌ เปิดกล้องไม่ได้ — อนุญาต Camera และเปิดผ่าน HTTPS/localhost");$("status").textContent="🔴 กล้องไม่พร้อม"}finally{$("start").disabled=false}};
+</script>
+</body>
+</html>
