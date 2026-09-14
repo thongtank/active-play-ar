@@ -1,165 +1,666 @@
 <!doctype html>
 <html lang="th">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#071225">
-<title>ACTIVE PLAY AR</title>
-<style>
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#06101f;color:#fff}
-body{overflow-x:hidden;background:
-radial-gradient(circle at 15% 15%,rgba(0,220,255,.18),transparent 30%),
-radial-gradient(circle at 85% 80%,rgba(150,70,255,.18),transparent 32%),#06101f}
-.app{max-width:1200px;margin:auto;padding:14px}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
-.logo{font-weight:900;letter-spacing:1px;font-size:clamp(20px,4vw,34px)}
-.logo span{color:#47e9ff}.sub{font-size:12px;opacity:.7}
-button{border:0;border-radius:14px;padding:11px 16px;font-weight:800;cursor:pointer;color:#06101f;background:#47e9ff}
-button.secondary{background:#172840;color:#fff}
-.layout{display:grid;grid-template-columns:1fr 330px;gap:14px}
-.stage{position:relative;aspect-ratio:16/10;min-height:480px;border:1px solid #24415e;border-radius:24px;overflow:hidden;background:#020a14;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;opacity:.9}
-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform:scaleX(-1)}
-.overlay{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(3,10,20,.45),transparent 30%,transparent 70%,rgba(3,10,20,.65))}
-.hud{position:absolute;left:14px;right:14px;top:14px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.badge{padding:9px 12px;border-radius:12px;background:rgba(3,12,24,.72);backdrop-filter:blur(8px);border:1px solid #29455d;font-size:13px}
-.target{position:absolute;width:70px;height:70px;border:3px solid #47e9ff;border-radius:50%;box-shadow:0 0 25px #47e9ff;display:none;transform:translate(-50%,-50%);animation:pulse 1s infinite}
-@keyframes pulse{50%{transform:translate(-50%,-50%) scale(1.16);opacity:.65}}
-.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(88%,600px)}
-.center h1{font-size:clamp(28px,6vw,58px);margin:0 0 8px}.center p{margin:0 0 18px;opacity:.82}
-.panel{background:rgba(9,22,39,.9);border:1px solid #25415c;border-radius:22px;padding:16px}
-.panel h2{font-size:18px;margin:0 0 10px}.mission{padding:13px;border-radius:15px;background:#0d2035;margin:8px 0;border:1px solid #203d56}.mission.active{border-color:#47e9ff}.mission.done{opacity:.6}
-.row{display:flex;justify-content:space-between;gap:10px}.stat{font-size:13px;opacity:.78}.big{font-size:27px;font-weight:900}
-.progress{height:8px;border-radius:8px;background:#10263d;overflow:hidden;margin-top:7px}.bar{height:100%;width:0;background:#47e9ff;transition:.2s}
-.note{font-size:12px;line-height:1.5;opacity:.72;margin-top:12px}
-#status{margin-top:8px;font-size:12px;color:#9feeff}
-@media(max-width:850px){.layout{grid-template-columns:1fr}.stage{min-height:62vh;aspect-ratio:auto}.panel{order:2}}
-@media(max-width:520px){.app{padding:8px}.stage{border-radius:16px}.hud{left:8px;right:8px;top:8px}.badge{padding:7px 9px;font-size:11px}.panel{border-radius:16px}}
-</style>
-</head>
-<body>
-<div class="app">
-<header>
-  <div><div class="logo">ACTIVE <span>PLAY</span> AR</div><div class="sub">Interactive Physical Education • Prototype</div></div>
-  <button class="secondary" id="reset">เริ่มใหม่</button>
-</header>
-
-<div class="layout">
-<section class="stage" id="stage">
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas"></canvas>
-  <div class="overlay"></div>
-  <div class="hud">
-    <div class="badge">ภารกิจ <b id="missionNo">0/5</b></div>
-    <div class="badge">คะแนน <b id="score">0</b></div>
-    <div class="badge">เวลา <b id="time">90</b> วินาที</div>
-  </div>
-  <div class="target" id="target"></div>
-  <div class="center" id="startScreen">
-    <h1>พร้อมขยับหรือยัง?</h1>
-    <p>ใช้กล้องหน้าและการเคลื่อนไหวของร่างกายเพื่อทำภารกิจ</p>
-    <button id="start">เริ่ม ACTIVE PLAY</button>
-    <div id="status">ต้องอนุญาตให้เว็บไซต์เข้าถึงกล้องเมื่อระบบถาม</div>
-  </div>
-</section>
-
-<aside class="panel">
-  <h2>MISSION CONTROL</h2>
-  <div class="mission active" id="m1"><div class="row"><b>01 แตะพลัง</b><span>+20</span></div><div class="stat">ใช้นิ้วชี้แตะเป้าหมาย</div></div>
-  <div class="mission" id="m2"><div class="row"><b>02 ชาร์จแขน</b><span>+25</span></div><div class="stat">ยกแขนเหนือไหล่ 5 ครั้ง</div><div class="progress"><div class="bar" id="p2"></div></div></div>
-  <div class="mission" id="m3"><div class="row"><b>03 พลังขา</b><span>+25</span></div><div class="stat">ยกเข่าสลับ 8 ครั้ง</div><div class="progress"><div class="bar" id="p3"></div></div></div>
-  <div class="mission" id="m4"><div class="row"><b>04 เก็บพลัง</b><span>+30</span></div><div class="stat">เคลื่อนตัวซ้าย–ขวาเข้าหาพลัง</div></div>
-  <div class="mission" id="m5"><div class="row"><b>05 FINAL FITNESS</b><span>+50</span></div><div class="stat">เคลื่อนไหวต่อเนื่องให้ครบเวลา</div><div class="progress"><div class="bar" id="p5"></div></div></div>
-  <hr style="border-color:#1c344c;border-width:1px 0 0;margin:15px 0">
-  <div class="row"><span class="stat">ระดับ</span><b id="level">BEGINNER</b></div>
-  <div class="row"><span class="stat">ความรู้สุขศึกษา</span><b id="fact">—</b></div>
-  <div class="note">หมายเหตุ: เวอร์ชันนี้เป็น prototype สำหรับทดสอบแนวคิดการเรียนรู้ผ่านการเคลื่อนไหวจริง และยังไม่ได้บันทึกข้อมูลนักเรียนลงฐานข้อมูล</div>
-</aside>
-</div>
-</div>
-
-<script type="module">
-import {HandLandmarker, PoseLandmarker, FilesetResolver}
-from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/+esm";
-
-const video=document.getElementById("video"), canvas=document.getElementById("canvas"), ctx=canvas.getContext("2d");
-const startBtn=document.getElementById("start"), resetBtn=document.getElementById("reset"), startScreen=document.getElementById("startScreen");
-const target=document.getElementById("target"), statusEl=document.getElementById("status");
-const scoreEl=document.getElementById("score"), timeEl=document.getElementById("time"), missionNo=document.getElementById("missionNo");
-let hand,pose,running=false,mission=0,score=0,time=90,last=0,raf=0;
-let armCount=0,kneeCount=0,sideCount=0,finalProgress=0,prevKnee=null,prevArm=false;
-
-const facts=[
-"การออกกำลังกายช่วยเสริมสมรรถภาพทางกายและสุขภาพ",
-"การอบอุ่นร่างกายช่วยเตรียมกล้ามเนื้อก่อนออกกำลังกาย",
-"การเคลื่อนไหวอย่างสม่ำเสมอควรทำให้เหมาะกับวัยและสภาพร่างกาย"
-];
-
-function ui(){
- scoreEl.textContent=score; timeEl.textContent=Math.max(0,Math.ceil(time));
- missionNo.textContent=Math.min(mission,5)+"/5";
- document.getElementById("fact").textContent=facts[Math.min(mission,2)];
- for(let i=1;i<=5;i++) document.getElementById("m"+i).classList.toggle("active",i===mission+1);
- document.getElementById("level").textContent=score>=100?"FIT MASTER":score>=50?"ACTIVE":"BEGINNER";
- document.getElementById("p2").style.width=Math.min(100,armCount/5*100)+"%";
- document.getElementById("p3").style.width=Math.min(100,kneeCount/8*100)+"%";
- document.getElementById("p5").style.width=Math.min(100,finalProgress/15*100)+"%";
-}
-function complete(points){
- score+=points; mission++;
- if(mission>=5){running=false; target.style.display="none"; startScreen.style.display="block"; startScreen.innerHTML="<h1>MISSION COMPLETE!</h1><p>สุดยอด! คะแนนรวม "+score+" คะแนน</p><button id='again'>เล่นอีกครั้ง</button>"; document.getElementById("again").onclick=reset; }
- ui();
-}
-function reset(){
- running=false; mission=0; score=0; time=90; armCount=0;kneeCount=0;sideCount=0;finalProgress=0;prevKnee=null;prevArm=false;
- startScreen.style.display="block"; startScreen.innerHTML="<h1>พร้อมขยับหรือยัง?</h1><p>ใช้กล้องหน้าและการเคลื่อนไหวของร่างกายเพื่อทำภารกิจ</p><button id='start2'>เริ่ม ACTIVE PLAY</button><div id='status'>ต้องอนุญาตให้เว็บไซต์เข้าถึงกล้องเมื่อระบบถาม</div>";
- document.getElementById("start2").onclick=startGame; ui();
-}
-async function init(){
- statusEl.textContent="กำลังเตรียมระบบตรวจจับการเคลื่อนไหว…";
- const fileset=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm");
- hand=await HandLandmarker.createFromOptions(fileset,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1});
- pose=await PoseLandmarker.createFromOptions(fileset,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"GPU"},runningMode:"VIDEO",numPoses:1});
- statusEl.textContent="พร้อมใช้งาน";
-}
-async function startGame(){
- try{
-  const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});
-  video.srcObject=stream; await video.play(); startScreen.style.display="none"; running=true; time=90; last=performance.now(); frame();
- }catch(e){startScreen.style.display="block"; startScreen.querySelector("#status").textContent="ไม่สามารถเปิดกล้องได้: "+e.message+" — ตรวจสอบสิทธิ์กล้องและใช้เว็บไซต์ผ่าน HTTPS";}
-}
-function point(x,y){
- const r=stage.getBoundingClientRect(); target.style.left=(x*r.width)+"px"; target.style.top=(y*r.height)+"px"; target.style.display="block";
-}
-function frame(now=performance.now()){
- if(!running)return;
- const dt=(now-last)/1000; last=now; time-=dt;
- canvas.width=video.videoWidth||1280; canvas.height=video.videoHeight||720; ctx.clearRect(0,0,canvas.width,canvas.height);
- let hr=hand.detectForVideo(video,now), pr=pose.detectForVideo(video,now);
- if(mission===0 && hr.landmarks?.[0]){
-   const p=hr.landmarks[0][8]; const x=1-p.x,y=p.y; point(x,y);
-   if(targetHit(x,y)){score+=20;mission=1;target.style.display="none";ui();}
- } else if(mission===1 && pr.landmarks?.[0]){
-   const L=pr.landmarks[0], lw=L[15],rw=L[16],ls=L[11],rs=L[12];
-   const raised=(lw.y<ls.y-.06)||(rw.y<rs.y-.06);
-   if(raised&&!prevArm){armCount++; if(armCount>=5){complete(25);}} prevArm=raised;
- } else if(mission===2 && pr.landmarks?.[0]){
-   const L=pr.landmarks[0],lk=L[25],rk=L[26],lh=L[23],rh=L[24];
-   const knee=Math.min(lk.y-lh.y,rk.y-rh.y)<-.08 ? (lk.y-lh.y<rk.y-rh.y?"L":"R"):null;
-   if(knee && knee!==prevKnee){kneeCount++;prevKnee=knee;if(kneeCount>=8)complete(25);}
- } else if(mission===3 && pr.landmarks?.[0]){
-   const nose=pr.landmarks[0][0]; if(Math.abs(nose.x-.5)>.18){sideCount++; if(sideCount>=3)complete(30);}
- } else if(mission===4){
-   finalProgress+=dt; if(finalProgress>=15)complete(50);
- }
- if(time<=0){running=false;startScreen.style.display="block";startScreen.innerHTML="<h1>หมดเวลา</h1><p>คะแนน "+score+" — ลองใหม่แล้วพยายามทำให้ต่อเนื่องขึ้น</p><button id='again'>เล่นอีกครั้ง</button>";document.getElementById("again").onclick=reset;}
- ui(); raf=requestAnimationFrame(frame);
-}
-function targetHit(x,y){
- const tx=parseFloat(target.style.left)/(stage.clientWidth||1), ty=parseFloat(target.style.top)/(stage.clientHeight||1);
- return Math.hypot(x-tx,y-ty)<.12;
-}
-startBtn.onclick=startGame; resetBtn.onclick=reset; ui(); init().catch(e=>statusEl.textContent="โหลด AI ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต");
-</script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ACTIVE PLAY AR</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #06101f;
+        color: #fff;
+        font-family: system-ui, sans-serif;
+      }
+      .app {
+        max-width: 1180px;
+        margin: auto;
+        padding: 14px;
+      }
+      .logo {
+        font-size: 30px;
+        font-weight: 900;
+      }
+      .logo b,
+      button {
+        color: #06101f;
+        background: #47e9ff;
+      }
+      .sub,
+      .note {
+        font-size: 12px;
+        opacity: 0.75;
+      }
+      header,
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      header {
+        margin-bottom: 12px;
+      }
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 11px 16px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #172840;
+        color: #fff;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 14px;
+      }
+      .stage {
+        min-height: 500px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #24415e;
+        border-radius: 22px;
+        background: #020a14;
+      }
+      video,
+      canvas {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+      }
+      canvas {
+        pointer-events: none;
+      }
+      .hud {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .badge,
+      .panel,
+      .card {
+        background: rgba(9, 22, 39, 0.93);
+        border: 1px solid #29455d;
+        border-radius: 14px;
+        padding: 10px;
+      }
+      .target {
+        display: none;
+        position: absolute;
+        width: 70px;
+        height: 70px;
+        border: 3px solid #47e9ff;
+        border-radius: 50%;
+        box-shadow: 0 0 25px #47e9ff;
+        transform: translate(-50%, -50%);
+      }
+      .screen {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        background: rgba(2, 10, 20, 0.74);
+      }
+      .hidden {
+        display: none !important;
+      }
+      .card {
+        width: min(510px, 100%);
+        text-align: center;
+        padding: 22px;
+      }
+      .card h1 {
+        margin: 0 0 8px;
+      }
+      .form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        text-align: left;
+      }
+      label {
+        font-size: 12px;
+        font-weight: 700;
+      }
+      input,
+      select {
+        width: 100%;
+        margin-top: 4px;
+        border: 1px solid #29455d;
+        border-radius: 9px;
+        padding: 10px;
+        background: #07182b;
+        color: #fff;
+        font: inherit;
+      }
+      .wide {
+        grid-column: span 2;
+      }
+      .check {
+        margin: 8px 0;
+        padding: 9px;
+        border-radius: 9px;
+        background: #0d2035;
+        text-align: left;
+        border-left: 4px solid #ffc857;
+      }
+      .ready {
+        border-color: #52f5a5;
+      }
+      .panel h2 {
+        margin-top: 0;
+      }
+      .mission {
+        margin: 8px 0;
+        padding: 12px;
+        background: #0d2035;
+        border: 1px solid #203d56;
+        border-radius: 12px;
+      }
+      .active {
+        border-color: #47e9ff;
+      }
+      .done {
+        opacity: 0.55;
+      }
+      .progress {
+        height: 7px;
+        background: #10263d;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 7px;
+      }
+      .bar {
+        height: 100%;
+        background: #47e9ff;
+        width: 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        text-align: left;
+        margin: 15px 0;
+      }
+      .grid div {
+        background: #0d2035;
+        padding: 9px;
+        border-radius: 9px;
+      }
+      .grid b {
+        display: block;
+        font-size: 20px;
+        color: #47e9ff;
+      }
+      @media (max-width: 800px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .stage {
+          min-height: 64vh;
+        }
+      }
+      @media (max-width: 450px) {
+        .form {
+          grid-template-columns: 1fr;
+        }
+        .wide {
+          grid-column: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div>
+          <div class="logo">ACTIVE <b>PLAY</b> AR</div>
+          <div class="sub">Interactive Physical Education • Phase 1</div>
+        </div>
+        <button id="reset" class="secondary">เริ่มใหม่</button>
+      </header>
+      <main class="layout">
+        <section class="stage" id="stage">
+          <video id="video" autoplay playsinline muted></video
+          ><canvas id="canvas"></canvas>
+          <div class="hud">
+            <span class="badge">ภารกิจ <b id="missionNo">0/5</b></span
+            ><span class="badge">คะแนน <b id="score">0</b></span
+            ><span class="badge">เวลา <b id="time">90</b>s</span
+            ><span class="badge">Combo <b id="combo">0</b></span>
+          </div>
+          <div class="target" id="target"></div>
+          <div class="screen" id="startScreen">
+            <div class="card">
+              <h1>พร้อมขยับหรือยัง?</h1>
+              <p>ระบบเก็บเฉพาะผลการเล่น ไม่บันทึกภาพหรือวิดีโอ</p>
+              <div class="form">
+                <label
+                  >ชั้น<select id="classLevel">
+                    <option>ป.5</option>
+                  </select></label
+                ><label
+                  >ห้อง<input
+                    id="room"
+                    inputmode="numeric"
+                    placeholder="เช่น 1" /></label
+                ><label
+                  >เลขที่<input
+                    id="studentNumber"
+                    inputmode="numeric"
+                    placeholder="เช่น 12" /></label
+                ><label
+                  >รหัสนักเรียน<input
+                    id="studentId"
+                    placeholder="ถ้ามี" /></label
+                ><label class="wide"
+                  >ชื่อ-นามสกุล<input
+                    id="studentName"
+                    placeholder="กรอกชื่อผู้เล่น"
+                /></label>
+              </div>
+              <p class="note">รายชื่อจริงจะโหลดจาก Google Sheets ในขั้นถัดไป</p>
+              <button id="prepare">ตรวจสอบความพร้อม</button>
+              <p class="note" id="status">ต้องอนุญาตให้เว็บไซต์ใช้กล้อง</p>
+            </div>
+          </div>
+          <div class="screen hidden" id="calibration">
+            <div class="card">
+              <h1>ตรวจสอบความพร้อม</h1>
+              <p>ยืนให้เห็นร่างกายช่วงบนและยกมือขึ้นในกรอบกล้อง</p>
+              <div id="cameraCheck" class="check">○ กำลังตรวจกล้อง</div>
+              <div id="poseCheck" class="check">○ กำลังตรวจพบร่างกาย</div>
+              <div id="handCheck" class="check">○ กำลังตรวจพบมือ</div>
+              <button id="start" disabled>รอการตรวจสอบ…</button>
+            </div>
+          </div>
+          <div class="screen hidden" id="resultScreen"></div>
+        </section>
+        <aside class="panel">
+          <h2>MISSION CONTROL</h2>
+          <div id="m1" class="mission active">
+            <b>01 แตะพลัง +20</b>
+            <div class="note">ใช้นิ้วชี้แตะเป้าหมาย</div>
+          </div>
+          <div id="m2" class="mission">
+            <b>02 ชาร์จแขน +25</b>
+            <div class="note">ยกแขนเหนือไหล่ 5 ครั้ง</div>
+            <div class="progress"><div id="p2" class="bar"></div></div>
+          </div>
+          <div id="m3" class="mission">
+            <b>03 พลังขา +25</b>
+            <div class="note">ยกเข่าสลับ 8 ครั้ง</div>
+            <div class="progress"><div id="p3" class="bar"></div></div>
+          </div>
+          <div id="m4" class="mission">
+            <b>04 เก็บพลัง +30</b>
+            <div class="note">เคลื่อนซ้าย–ขวา</div>
+          </div>
+          <div id="m5" class="mission">
+            <b>05 FINAL FITNESS +50</b>
+            <div class="note">เคลื่อนไหวต่อเนื่อง 15 วินาที</div>
+            <div class="progress"><div id="p5" class="bar"></div></div>
+          </div>
+          <hr />
+          <div class="row"><span>ระดับ</span><b id="level">BEGINNER</b></div>
+          <div class="row"><span>การเคลื่อนไหว</span><b id="moves">0</b></div>
+          <div class="row"><span>ความแม่นยำ</span><b id="accuracy">0%</b></div>
+          <p class="note">ไม่มีการเก็บภาพ วิดีโอ หรือข้อมูล pose รายเฟรม</p>
+        </aside>
+      </main>
+    </div>
+    <script type="module">
+      import {
+        HandLandmarker,
+        PoseLandmarker,
+        FilesetResolver,
+      } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/+esm";
+      const $ = (x) => document.getElementById(x),
+        video = $("video"),
+        stage = $("stage"),
+        target = $("target"),
+        names = [
+          "แตะพลัง",
+          "ชาร์จพลังแขน",
+          "พลังขาสลับ",
+          "เก็บพลัง",
+          "Final Fitness",
+        ];
+      // กำหนด URL ของ Google Apps Script Web App หลัง Deploy ใน Phase 1.4
+      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwp_g2jDH3ZIsGsx-L4Bm2KchkDWVMA1GSwCORm-ec9q3PrNy11LpjZmfxK1Hh0L_dS/exec";
+      let hand,
+        pose,
+        stream,
+        running = false,
+        ready = false,
+        mission = 0,
+        score = 0,
+        time = 90,
+        last = 0,
+        arms = 0,
+        knees = 0,
+        sides = 0,
+        finalTime = 0,
+        prevArm = false,
+        prevKnee = null,
+        moves = 0,
+        correct = 0,
+        combo = 0,
+        session;
+      function screen(id) {
+        ["startScreen", "calibration", "resultScreen"].forEach((x) =>
+          $(x).classList.toggle("hidden", x !== id),
+        );
+      }
+      function id(p) {
+        return (
+          p + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7)
+        );
+      }
+      function check(e, ok, text) {
+        $(e).className = "check " + (ok ? "ready" : "");
+        $(e).textContent = (ok ? "✓ " : "○ ") + text;
+      }
+      function ui() {
+        $("score").textContent = score;
+        $("time").textContent = Math.max(0, Math.ceil(time));
+        $("missionNo").textContent = Math.min(mission, 5) + "/5";
+        $("combo").textContent = combo;
+        $("moves").textContent = moves;
+        $("accuracy").textContent =
+          (moves ? Math.round((correct / moves) * 100) : 0) + "%";
+        $("level").textContent =
+          score >= 100 ? "FIT MASTER" : score >= 50 ? "ACTIVE" : "BEGINNER";
+        $("p2").style.width = Math.min(100, (arms / 5) * 100) + "%";
+        $("p3").style.width = Math.min(100, (knees / 8) * 100) + "%";
+        $("p5").style.width = Math.min(100, (finalTime / 15) * 100) + "%";
+        for (let n = 1; n < 6; n++) {
+          $("m" + n).classList.toggle("active", n === mission + 1);
+          $("m" + n).classList.toggle("done", n <= mission);
+        }
+      }
+      async function models() {
+        const f = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm",
+        );
+        hand = await HandLandmarker.createFromOptions(f, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+            delegate: "GPU",
+          },
+          runningMode: "VIDEO",
+          numHands: 1,
+        });
+        pose = await PoseLandmarker.createFromOptions(f, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker.task",
+            delegate: "GPU",
+          },
+          runningMode: "VIDEO",
+          numPoses: 1,
+        });
+        $("status").textContent = "พร้อมให้ตรวจสอบกล้อง";
+      }
+      function learner() {
+        let name = $("studentName").value.trim(),
+          room = $("room").value.trim(),
+          number = $("studentNumber").value.trim();
+        if (!name || !room || !number) {
+          $("status").textContent = "กรุณากรอกชื่อ ห้อง และเลขที่ให้ครบ";
+          return;
+        }
+        return {
+          student_id: $("studentId").value.trim() || `P5-${room}-${number}`,
+          student_name: name,
+          student_number: number,
+          class_level: $("classLevel").value,
+          room,
+        };
+      }
+      async function prepare() {
+        const s = learner();
+        if (!s) return;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user", width: { ideal: 1280 } },
+            audio: false,
+          });
+          video.srcObject = stream;
+          await video.play();
+          session = {
+            session_id: id("session"),
+            ...s,
+            date: new Date().toISOString().slice(0, 10),
+            device: navigator.userAgent,
+            missions: [],
+            session_status: "prepared",
+          };
+          screen("calibration");
+          calibrate();
+        } catch (e) {
+          $("status").textContent = "เปิดกล้องไม่ได้: " + e.message;
+        }
+      }
+      function calibrate() {
+        if (running || !stream) return;
+        let now = performance.now(),
+          h = hand.detectForVideo(video, now),
+          p = pose.detectForVideo(video, now),
+          hasH = !!h.landmarks?.[0],
+          hasP = !!p.landmarks?.[0];
+        check("cameraCheck", video.readyState >= 2, "กล้องพร้อมใช้งาน");
+        check(
+          "poseCheck",
+          hasP,
+          hasP ? "ตรวจพบร่างกายแล้ว" : "ยืนให้กล้องเห็นร่างกายช่วงบน",
+        );
+        check(
+          "handCheck",
+          hasH,
+          hasH ? "ตรวจพบมือแล้ว" : "ยกมือขึ้นในกรอบกล้อง",
+        );
+        ready = hasH && hasP;
+        $("start").disabled = !ready;
+        $("start").textContent = ready ? "READY TO PLAY" : "รอการตรวจสอบ…";
+        requestAnimationFrame(calibrate);
+      }
+      function spawnTarget() {
+        let r = stage.getBoundingClientRect(),
+          x = 0.2 + Math.random() * 0.6,
+          y = 0.25 + Math.random() * 0.5;
+        target.style.display = "block";
+        target.style.left = x * r.width + "px";
+        target.style.top = y * r.height + "px";
+      }
+      function begin() {
+        if (!ready) return;
+        screen("none");
+        running = true;
+        session.start_time = new Date().toISOString();
+        session.session_status = "playing";
+        spawnTarget();
+        last = performance.now();
+        frame();
+      }
+      function mark(points, type) {
+        score += points;
+        combo++;
+        moves++;
+        correct++;
+        mission++;
+        session.missions.push({
+          mission_id: id("mission"),
+          session_id: session.session_id,
+          student_id: session.student_id,
+          mission_name: names[mission - 1],
+          mission_type: type,
+          target_count: type === "arm" ? 5 : type === "knee" ? 8 : 1,
+          success_count: 1,
+          accuracy_percent: 100,
+          duration_sec: Math.round(90 - time),
+          score: points,
+          completed: true,
+        });
+        if (mission === 5) finish("completed");
+      }
+      function frame(now = performance.now()) {
+        if (!running) return;
+        let dt = (now - last) / 1000;
+        last = now;
+        time -= dt;
+        let h = hand.detectForVideo(video, now),
+          p = pose.detectForVideo(video, now);
+        if (mission === 0 && h.landmarks?.[0]) {
+          let q = h.landmarks[0][8],
+            x = 1 - q.x,
+            y = q.y,
+            r = stage.getBoundingClientRect(),
+            tx = parseFloat(target.style.left) / r.width,
+            ty = parseFloat(target.style.top) / r.height;
+          if (Math.hypot(x - tx, y - ty) < 0.12) {
+            target.style.display = "none";
+            mark(20, "touch");
+          }
+        } else if (mission === 1 && p.landmarks?.[0]) {
+          let l = p.landmarks[0],
+            up = l[15].y < l[11].y - 0.06 || l[16].y < l[12].y - 0.06;
+          if (up && !prevArm) {
+            arms++;
+            moves++;
+            correct++;
+            if (arms >= 5) mark(25, "arm");
+          }
+          prevArm = up;
+        } else if (mission === 2 && p.landmarks?.[0]) {
+          let l = p.landmarks[0],
+            k =
+              Math.min(l[25].y - l[23].y, l[26].y - l[24].y) < -0.08
+                ? l[25].y - l[23].y < l[26].y - l[24].y
+                  ? "L"
+                  : "R"
+                : null;
+          if (k && k !== prevKnee) {
+            knees++;
+            moves++;
+            correct++;
+            prevKnee = k;
+            if (knees >= 8) mark(25, "knee");
+          }
+        } else if (
+          mission === 3 &&
+          p.landmarks?.[0] &&
+          Math.abs(p.landmarks[0][0].x - 0.5) > 0.18
+        ) {
+          sides++;
+          if (sides >= 36) mark(30, "side");
+        } else if (mission === 4) {
+          finalTime += dt;
+          if (finalTime >= 15) mark(50, "continuous");
+        }
+        if (time <= 0) finish("timeout");
+        ui();
+        requestAnimationFrame(frame);
+      }
+      async function save() {
+        try {
+          if (!APPS_SCRIPT_URL) throw 0;
+          await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(session),
+          });
+          return "บันทึกข้อมูลแล้ว";
+        } catch {
+          let q = JSON.parse(
+            localStorage.getItem("activePlayPendingSessions") || "[]",
+          );
+          q.push(session);
+          localStorage.setItem("activePlayPendingSessions", JSON.stringify(q));
+          return "เก็บผลไว้ในเครื่องชั่วคราว (ยังไม่ได้เชื่อม Google Sheets)";
+        }
+      }
+      async function finish(result) {
+        if (!running) return;
+        running = false;
+        target.style.display = "none";
+        Object.assign(session, {
+          end_time: new Date().toISOString(),
+          duration_sec: Math.max(0, Math.round(90 - time)),
+          active_time_sec: Math.round(finalTime + arms + knees + sides / 12),
+          total_score: score,
+          missions_completed: mission,
+          total_missions: 5,
+          movement_count: moves,
+          accuracy_percent: moves ? Math.round((correct / moves) * 100) : 0,
+          combo_max: combo,
+          level: score >= 100 ? "FIT MASTER" : "ACTIVE",
+          result,
+          session_status: "completed",
+          movements: [
+            {
+              movement_id: id("movement"),
+              session_id: session.session_id,
+              student_id: session.student_id,
+              movement_type: "game_total",
+              target_count: 5,
+              actual_count: moves,
+              duration_sec: Math.round(finalTime + arms + knees + sides / 12),
+              accuracy_percent: moves ? Math.round((correct / moves) * 100) : 0,
+              left_count: 0,
+              right_count: 0,
+            },
+          ],
+        });
+        let msg = await save();
+        $("resultScreen").innerHTML =
+          `<div class="card"><h1>${result === "completed" ? "🏆 MISSION COMPLETE" : "⌛ หมดเวลา"}</h1><p>${session.student_name}</p><div class="grid"><div>คะแนน<b>${score}</b></div><div>Active Time<b>${session.active_time_sec} วินาที</b></div><div>เคลื่อนไหว<b>${moves} ครั้ง</b></div><div>Mission<b>${mission}/5</b></div></div><b>${session.level}</b><p class="note">${msg}</p><button id="again">เล่นอีกครั้ง</button></div>`;
+        screen("resultScreen");
+        $("again").onclick = reset;
+      }
+      function reset() {
+        running = false;
+        if (stream) stream.getTracks().forEach((x) => x.stop());
+        stream = null;
+        mission =
+          score =
+          arms =
+          knees =
+          sides =
+          finalTime =
+          moves =
+          correct =
+          combo =
+            0;
+        time = 90;
+        prevArm = false;
+        prevKnee = null;
+        target.style.display = "none";
+        ui();
+        screen("startScreen");
+      }
+      $("prepare").onclick = prepare;
+      $("start").onclick = begin;
+      $("reset").onclick = reset;
+      ui();
+      models().catch(
+        (e) => ($("status").textContent = "โหลด AI ไม่สำเร็จ: " + e.message),
+      );
+    </script>
+  </body>
 </html>

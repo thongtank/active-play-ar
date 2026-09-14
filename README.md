@@ -1,9 +1,23 @@
-# ACTIVE PLAY AR – Prototype
+# ACTIVE PLAY AR – Phase 1
 
-สื่อการเรียนรู้แบบ Interactive สำหรับทดสอบแนวคิด Active Play ด้วยกล้องและ AI Hand/Pose Tracking
+สื่อการเรียนรู้แบบ Interactive สำหรับ ป.5 ตามนวัตกรรม Active Play ใช้กล้องและ AI Hand/Pose Tracking เพื่อให้ผู้เรียนเคลื่อนไหวจริง และเก็บผลการเล่นสำหรับใช้วิเคราะห์ PA
 
 ## ไฟล์
-- `index.html` — หน้าเกมหลัก
+- `index.html` — หน้าเริ่มสำหรับนักเรียน, การตรวจความพร้อม, เกม และผลลัพธ์
+
+## สถานะ: Phase 1
+
+- เก็บชั้น ห้อง เลขที่ ชื่อ และรหัสนักเรียน (หากมี)
+- ตรวจกล้อง การพบร่างกาย และการพบมือก่อนเริ่ม
+- บันทึกผล Session, Mission และ Movement ในรูปแบบที่พร้อมส่งต่อ
+- ไม่เก็บภาพ วิดีโอ หรือข้อมูล pose รายเฟรม
+- หากยังไม่กำหนด Google Apps Script URL จะเก็บข้อมูลชั่วคราวใน `localStorage`
+
+## เชื่อม Google Sheets
+
+หลัง Deploy Google Apps Script Web App ให้ใส่ URL ในตัวแปร `APPS_SCRIPT_URL` ภายใน `index.html` เพื่อส่งข้อมูลผ่าน Apps Script แทนการเขียน Google Sheet โดยตรง
+
+ไฟล์ [google-apps-script/Code.gs](google-apps-script/Code.gs) สร้างชีตฐานข้อมูลทั้ง 6 ชีตตาม Project Brief และรับข้อมูล Session, Mission และ Movement จากเกม
 
 ## วิธีนำขึ้น GitHub Pages
 1. สร้าง Repository แบบ Public เช่น `active-play-ar`
